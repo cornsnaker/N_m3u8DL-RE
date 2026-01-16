@@ -117,52 +117,6 @@ jobs:
           name: win-arm64
           path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_win-arm64_${{ needs.set-date.outputs.date }}.zip
 
-  build-android-bionic-x64-arm64:
-    runs-on: windows-latest
-    needs: set-date
-
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          ref: ${{ github.event.inputs.ref }}
-
-      - name: Set up NDK
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://dl.google.com/android/repository/android-ndk-r27c-windows.zip" -OutFile "android-ndk.zip"
-          Expand-Archive -Path "android-ndk.zip" -DestinationPath "./android-ndk"
-          $ndkRoot = "${{ github.workspace }}\android-ndk\android-ndk-r27c"
-          echo "NDK_ROOT=$ndkRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
-          $ndkBinPath = "$ndkRoot\toolchains\llvm\prebuilt\windows-x86_64\bin"
-          echo $ndkBinPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
-
-      - name: Set up dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
-
-      - run: dotnet publish src/N_m3u8DL-RE -r linux-bionic-x64 -p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -o artifact
-      - run: dotnet publish src/N_m3u8DL-RE -r linux-bionic-arm64 -p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -o artifact-arm64
-
-      - name: Package [linux-bionic]
-        run: |
-          cd artifact
-          tar -czvf ../N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_android-bionic-x64_${{ needs.set-date.outputs.date }}.tar.gz N_m3u8DL-RE
-          cd ../artifact-arm64
-          tar -czvf ../N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_android-bionic-arm64_${{ needs.set-date.outputs.date }}.tar.gz N_m3u8DL-RE
-
-      - name: Upload Artifact [linux-bionic-x64]
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-bionic-x64
-          path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_android-bionic-x64_${{ needs.set-date.outputs.date }}.tar.gz
-
-      - name: Upload Artifact[linux-bionic-arm64]
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-bionic-arm64
-          path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_android-bionic-arm64_${{ needs.set-date.outputs.date }}.tar.gz
-
   build-linux-x64:
     runs-on: ubuntu-latest
     needs: set-date
@@ -201,82 +155,13 @@ jobs:
           name: linux-x64
           path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_linux-x64_${{ needs.set-date.outputs.date }}.tar.gz
 
-  build-linux-arm64:
-    runs-on: ubuntu-latest
-    needs: set-date
-
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          ref: ${{ github.event.inputs.ref }}
-
-      - name: Build arm64 in alpine container
-        run: |
-          # Use the official .NET SDK Alpine image which handles architecture-specific musl/openssl logic
-          docker run --rm \
-            --platform linux/arm64 \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            mcr.microsoft.com/dotnet/sdk:10.0-alpine \
-            sh -c "
-              set -e
-              apk add --no-cache clang build-base cmake icu-dev zlib-static openssl-dev openssl-libs-static
-              dotnet publish src/N_m3u8DL-RE -r linux-musl-arm64 -c Release -o /workspace/artifact
-            "
-
-      - name: Package [linux-arm64]
-        run: |
-          cd artifact
-          tar -czvf ../N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_linux-arm64_${{ needs.set-date.outputs.date }}.tar.gz N_m3u8DL-RE
-
-      - name: Upload Artifact [linux-arm64]
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-arm64
-          path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_linux-arm64_${{ needs.set-date.outputs.date }}.tar.gz
-
-  build-mac-x64-arm64:
-    runs-on: macos-latest
-    needs: set-date
-
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          ref: ${{ github.event.inputs.ref }}
-
-      - name: Set up dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
-      - run: dotnet publish src/N_m3u8DL-RE -r osx-arm64 -c Release -o artifact-arm64 
-      - run: dotnet publish src/N_m3u8DL-RE -r osx-x64 -c Release -o artifact-x64 
-
-      - name: Package [osx]
-        run: |
-          cd artifact-x64
-          tar -czvf ../N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_osx-x64_${{ needs.set-date.outputs.date }}.tar.gz N_m3u8DL-RE
-          cd ../artifact-arm64
-          tar -czvf ../N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_osx-arm64_${{ needs.set-date.outputs.date }}.tar.gz N_m3u8DL-RE
-
-      - name: Upload Artifact [osx-x64]
-        uses: actions/upload-artifact@v4
-        with:
-          name: osx-x64
-          path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_osx-x64_${{ needs.set-date.outputs.date }}.tar.gz
-
-      - name: Upload Artifact[osx-arm64]
-        uses: actions/upload-artifact@v4
-        with:
-          name: osx-arm64
-          path: N_m3u8DL-RE_${{ needs.set-date.outputs.tag }}_osx-arm64_${{ needs.set-date.outputs.date }}.tar.gz
-
   create_release:
     name: Create release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     if: ${{ github.event.inputs.doRelease == 'true' }}
-    needs: [set-date,build-win-nt6_0-x86,build-win-x64-arm64,build-android-bionic-x64-arm64,build-linux-x64,build-linux-arm64,build-mac-x64-arm64]
+    needs: [set-date, build-win-nt6_0-x86, build-win-x64-arm64, build-linux-x64]
 
     steps:
       - name: Fetch artifacts
@@ -287,7 +172,7 @@ jobs:
         with:
           tag: ${{ github.event.inputs.tag }}
           name: N_m3u8DL-RE_${{ github.event.inputs.tag }}
-          artifacts: "android-bionic-x64/*,android-bionic-arm64/*,linux-x64/*,linux-arm64/*,osx-x64/*,osx-arm64/*,win-x64/*,win-arm64/*,win-NT6.0-x86/*"
+          artifacts: "linux-x64/*,win-x64/*,win-arm64/*,win-NT6.0-x86/*"
           draft: false
           allowUpdates: true
           generateReleaseNotes: true
