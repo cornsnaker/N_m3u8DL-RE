@@ -1,0 +1,4 @@
+# Telegram MTProto client (large-file chunked uploads, inline keyboards).
+pyrogram==2.0.106
+# Native crypto acceleration for Pyrogram (faster up/downloads).
+tgcrypto==1.2.5
